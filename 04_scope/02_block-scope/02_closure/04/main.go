@@ -2,13 +2,18 @@ package main
 
 import "fmt"
 
-func main() {
+func wrapper() func() int {
 	x := 0
-	increment := func() int {
+	return func() int {
 		x++
 		return x
 	}
+}
 
+func main() {
+	increment := wrapper()
 	fmt.Println(increment())
+	fmt.Println(increment())
+	increment = wrapper()
 	fmt.Println(increment())
 }

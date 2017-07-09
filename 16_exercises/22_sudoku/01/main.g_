@@ -1,0 +1,214 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+)
+
+func main() {
+	allPuzzles := getPuzzlesInArray("https://projecteuler.net/project/resources/p096_sudoku.txt")
+	firstPuzzle := allPuzzles[0]
+
+	fmt.Println(solve(firstPuzzle))
+
+	/*
+		for line := 0; line < 9; line++ {
+			for column := 0; column < 9; column++ {
+
+				if firstPuzzle[line][column] == 0 {
+					for i := workingPuzzle[line][column] + 1; i < 10; i++ {
+						fmt.Println("trying: ", i, " in column: ", column)
+						bufio.NewReader(os.Stdin).ReadBytes('\n')
+						if testThisNumber(i, line, column, workingPuzzle) {
+							workingPuzzle[line][column] = i
+							break
+						}
+					}
+				}
+
+				fmt.Println(workingPuzzle)
+
+				if workingPuzzle[line][column] == 0 {
+					for col := column - 1; col >= 0; col-- {
+						if firstPuzzle[line][col] == 0 && workingPuzzle[line][col] != 9 {
+							break
+						}
+						fmt.Println(col)
+					}
+					return
+				}
+
+					memValue := &(workingPuzzle[line][column])
+					if firstPuzzle[line][column] == 0 {
+						for i := *memValue + 1; i < 10; i++ {
+							fmt.Println("trying: ", i, " in column: ", column)
+							bufio.NewReader(os.Stdin).ReadBytes('\n')
+							if testThisNumber(i, line, column, workingPuzzle) {
+								if *memValue > 0 {
+									memValue = &i
+								} else {
+									workingPuzzle[line][column] = i
+								}
+								break
+							}
+						}
+					}
+					fmt.Println(workingPuzzle)
+					if workingPuzzle[line][column] == 0 {
+						column--
+						if firstPuzzle[line][column] != 0 {
+							column--
+						}
+						if workingPuzzle[line][column] == 9 {
+							workingPuzzle[line][column] = 0
+							column--
+						}
+						column--
+					}
+			}
+		}
+	*/
+
+}
+
+func solve(puzzle [][]int) [][]int {
+
+	tmp := make([][]int, len(puzzle))
+	workingPuzzle := copy(tmp, puzzle)
+
+	for line := 0; line < 9; line++ {
+		for column := 0; column < 9; column++ {
+			if puzzle[line][column] == 0 {
+				for i := workingPuzzle[line][column] + 1; i < 10; i++ {
+					if testThisNumber(i, line, column, workingPuzzle) {
+						workingPuzzle[line][column] = i
+						fmt.Println("puzzle: ", puzzle)
+						fmt.Println("working puzzle: ", workingPuzzle)
+						break
+					}
+				}
+			}
+
+			if workingPuzzle[line][column] == 0 {
+				revLine, revColumn := line, column-1
+				if revColumn < 0 {
+					revColumn = 8
+					revLine--
+				}
+				for revLine >= 0 {
+					for revColumn >= 0 {
+						fmt.Println("column: ", revLine, " ", revColumn)
+						bufio.NewReader(os.Stdin).ReadBytes('\n')
+						if puzzle[revLine][revColumn] != 0 {
+							revColumn--
+							fmt.Println("got puzzle not zero.", " Column: ", revColumn, " Puzzle Value: ", puzzle[revLine][revColumn], " Working pz Value: ", workingPuzzle[revLine][revColumn])
+							continue
+						}
+						if workingPuzzle[revLine][revColumn] == 9 {
+							//workingPuzzle[revLine] = append(workingPuzzle[revLine][:revColumn], workingPuzzle[revLine][revColumn+1:]...)
+							//workingPuzzle[revLine] = append(workingPuzzle[revLine][:revColumn], append([]int{0}, workingPuzzle[revLine][revColumn:]...)...)
+							workingPuzzle[revLine][revColumn] = 0
+							revColumn--
+							fmt.Println("got working puzzle 9 in column: ", revColumn)
+							continue
+						}
+						if workingPuzzle[revLine][revColumn] != 9 {
+							fmt.Println("should break here, in column ", revColumn)
+							//workingPuzzle[revLine][revColumn]++
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return workingPuzzle
+}
+
+func testThisNumber(n int, line int, column int, puzzle [][]int) bool {
+	// test line
+	for _, v := range puzzle[line] {
+		if v == n {
+			return false
+		}
+	}
+	// test column
+	for i := 0; i < 9; i++ {
+		if puzzle[i][column] == n {
+			return false
+		}
+	}
+	// test squase
+	lineMax, lineMin := 0, 0
+	columnMax, columnMin := 0, 0
+	if line < 3 {
+		lineMax, lineMin = 2, 0
+	} else if line < 6 && line > 2 {
+		lineMax, lineMin = 3, 5
+	} else {
+		lineMax, lineMin = 6, 8
+	}
+	if column < 3 {
+		columnMax, columnMin = 2, 0
+	} else if column < 6 && column > 2 {
+		columnMax, columnMin = 3, 5
+	} else {
+		columnMax, columnMin = 6, 8
+	}
+
+	for i := lineMin; i <= lineMax; i++ {
+		for j := columnMin; j <= columnMax; j++ {
+			if n == puzzle[i][j] {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+func getPuzzlesInArray(url string) [][][]int {
+
+	res, _ := http.Get(url)
+
+	var rawLines []string
+
+	subArray := bufio.NewScanner(res.Body)
+	defer res.Body.Close()
+
+	subArray.Split(bufio.ScanLines)
+
+	for subArray.Scan() {
+		rawLines = append(rawLines, subArray.Text())
+	}
+
+	puzzle := make([][]int, 9)
+	allPuzzles := make([][][]int, 49)
+	puzzleNumber := 0
+	lineNumber := 0
+	for i, lineStr := range rawLines {
+		if lineStr[0] != 71 {
+			lineInt := make([]int, 9)
+			tempLine := strings.Split(lineStr, "")
+			for j, valueStr := range tempLine {
+				lineInt[j], _ = strconv.Atoi(valueStr)
+			}
+			puzzle[lineNumber] = lineInt
+			lineNumber++
+		} else {
+			allPuzzles[puzzleNumber] = puzzle
+			puzzle = make([][]int, 9)
+			if i != 0 {
+				puzzleNumber++
+			}
+			lineNumber = 0
+		}
+	}
+
+	return allPuzzles
+}

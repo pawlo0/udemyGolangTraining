@@ -1,17 +1,22 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
-func wrapper() func() int {
-	x := 0
+func startsAt(x int, y int) func() int {
 	return func() int {
-		x++
+		x += y
 		return x
 	}
 }
 
 func main() {
-	increment := wrapper()
-	fmt.Println(increment())
-	fmt.Println(increment())
+	result1 := startsAt(5, 1)
+	result2 := startsAt(10, 10)
+	fmt.Println(result1())
+	fmt.Println(result1())
+	fmt.Println(result1())
+	fmt.Println(result2())
+	fmt.Println(result2())
 }

@@ -1,0 +1,185 @@
+package main
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
+
+func main() {
+
+	allPuzzles := getPuzzlesInArray()
+
+	fmt.Println(solve(allPuzzles[0]))
+}
+
+func solve(puzzle []int) []int {
+
+	// get index of fixed numbers
+	var fixed []int
+	for i, v := range puzzle {
+		if v != 0 {
+			fixed = append(fixed, i)
+		}
+	}
+
+	possibleSolutions := make(map[int][]int)
+
+	puzzle, possibleSolutions = findPossibilities(0, puzzle, possibleSolutions)
+
+	// cycle the puzzle up
+	for cell := 0; cell < len(puzzle); cell++ {
+		if puzzle[cell] == 0 {
+			if len(possibleSolutions[cell]) > 0 {
+				puzzle[cell] = possibleSolutions[cell][0]
+				puzzle, possibleSolutions = findPossibilities(cell, puzzle, possibleSolutions)
+				fmt.Println("trying: ", possibleSolutions[cell][0], " in cell: ", cell)
+				fmt.Println(puzzle)
+				fmt.Println(cell, ": ", possibleSolutions[cell], cell+1, ": ", possibleSolutions[cell+1], cell+2, ": ", possibleSolutions[cell+2])
+				//bufio.NewReader(os.Stdin).ReadBytes('\n')
+			} else {
+				fmt.Println("before cycle. Failed in cell: ", cell)
+				//bufio.NewReader(os.Stdin).ReadBytes('\n')
+				cell--
+				for cell >= 0 {
+					if contains(fixed, cell) {
+						cell--
+					} else if len(possibleSolutions[cell]) == 1 {
+						puzzle[cell] = 0
+						delete(possibleSolutions, cell)
+						cell--
+					} else {
+						lastValue := puzzle[cell]
+						possibleSolutions[cell] = possibleSolutions[cell][1:]
+						puzzle[cell] = 0
+						fmt.Println("inside cycle. Eliminating ", lastValue, " in cell: ", cell, " left now with possibles: ", possibleSolutions[cell])
+						//bufio.NewReader(os.Stdin).ReadBytes('\n')
+						cell--
+						break
+					}
+				}
+			}
+		}
+	}
+
+	return puzzle
+}
+
+func findPossibilities(start int, puzzle []int, possibleSolutions map[int][]int) ([]int, map[int][]int) {
+	for cell := start; cell < len(puzzle); cell++ {
+		value := puzzle[cell]
+		if value == 0 {
+			possibilitiesForThisCell := []int{}
+			if _, ok := possibleSolutions[cell]; ok {
+				for _, possibleNumber := range possibleSolutions[cell] {
+					if testThisNumber(possibleNumber, cell, puzzle) {
+						possibilitiesForThisCell = append(newpossibilitiesForThisCell, possibleNumber)
+					}
+				}
+			} else {
+				for number := 1; number < 10; number++ {
+					if testThisNumber(number, cell, puzzle) {
+						possibilitiesForThisCell = append(newpossibilitiesForThisCell, number)
+					}
+				}
+			}
+			possibleSolutions[cell] = newpossibilitiesForThisCell
+			/*
+				if len(newpossibilitiesForThisCell) == 1 {
+					puzzle[cell] = newpossibilitiesForThisCell[0]
+					puzzle, possibleSolutions = findPossibilities(cell, puzzle, possibleSolutions)
+				}
+			*/
+		}
+	}
+	return puzzle, possibleSolutions
+}
+
+func testThisNumber(n int, index int, puzzle []int) bool {
+
+	for i, v := range puzzle {
+		// test line
+		if index/9 == i/9 && v == n {
+			return false
+		}
+		// test column
+		if index%9 == i%9 && v == n {
+			return false
+		}
+		// test square
+		if whichSquare(index) == whichSquare(i) && v == n {
+			return false
+		}
+	}
+
+	return true
+}
+
+func whichSquare(position int) int {
+	square := 0
+	triplet := position / 3
+	if triplet > 8 && triplet < 18 {
+		square += 3
+	} else if triplet >= 18 {
+		square += 6
+	}
+	square += triplet % 3
+	return square
+}
+
+func contains(s []int, e int) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
+func getPuzzlesInArray() [][]int {
+	/*
+		url := "http://staffhome.ecm.uwa.edu.au/~00013890/sudoku17"
+
+		res, _ := http.Get(url)
+
+		var rawLines []string
+
+		subArray := bufio.NewScanner(res.Body)
+		defer res.Body.Close()
+
+		subArray.Split(bufio.ScanLines)
+
+		for subArray.Scan() {
+			rawLines = append(rawLines, subArray.Text())
+		}
+
+		var puzzle []int
+		var allPuzzles [][]int
+
+		for _, lineStr := range rawLines {
+			tempLine := strings.Split(lineStr, "")
+			for _, valueStr := range tempLine {
+				value, _ := strconv.Atoi(valueStr)
+				puzzle = append(puzzle, value)
+			}
+			allPuzzles = append(allPuzzles, puzzle)
+			puzzle = []int{}
+		}
+
+		return allPuzzles
+	*/
+
+	var puzzle []int
+	var allPuzzles [][]int
+
+	lineStr := "000000010400000000020000000000050407008000300001090000300400200050100000000806000"
+
+	tempLine := strings.Split(lineStr, "")
+	for _, valueStr := range tempLine {
+		value, _ := strconv.Atoi(valueStr)
+		puzzle = append(puzzle, value)
+	}
+	allPuzzles = append(allPuzzles, puzzle)
+	return allPuzzles
+
+}
